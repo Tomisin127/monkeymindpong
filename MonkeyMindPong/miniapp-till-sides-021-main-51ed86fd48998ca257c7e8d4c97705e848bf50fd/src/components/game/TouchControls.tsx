@@ -93,17 +93,6 @@ export function TouchControls({ onMove, gameStarted, gameOver }: TouchControlsPr
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
-      style={{
-        background: 'linear-gradient(to right, rgba(0,0,0,0.1), transparent)',
-      }}
-    >
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 text-sm pointer-events-none select-none">
-        <div className="flex flex-col items-center gap-2">
-          <span>↑</span>
-          <span className="text-xs">Swipe</span>
-          <span>↓</span>
-        </div>
-      </div>
-    </div>
+    />
   );
 }
