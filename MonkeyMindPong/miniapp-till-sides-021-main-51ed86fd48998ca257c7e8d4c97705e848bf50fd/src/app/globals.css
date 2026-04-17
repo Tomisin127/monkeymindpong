@@ -182,35 +182,4 @@
     0 0 20px hsl(48 100% 55% / 0.5);
 }
 
-/* ── Landscape-only enforcement for mobile ───────────────────────────────── */
-/* On small portrait devices, hide the app and show a rotate prompt. */
-@media (orientation: portrait) and (max-width: 900px) {
-  body > * {
-    display: none !important;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: var(--background);
-    z-index: 9998;
-  }
-  body::after {
-    content: 'ROTATE YOUR DEVICE\A TO LANDSCAPE';
-    white-space: pre;
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-family: var(--font-pixel), monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.1em;
-    line-height: 2;
-    color: var(--primary);
-    text-shadow: 0 0 12px hsl(48 100% 55% / 0.8);
-    padding: 2rem;
-    z-index: 9999;
-  }
-}
+
