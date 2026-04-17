@@ -7,6 +7,8 @@ import { base } from 'wagmi/chains';
 import { X, ArrowUpDown, Loader2, ExternalLink, ChevronDown, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
+const BUILDER_CODE = 'bc_9o0ejk10' as const;
+
 // ── Contract Addresses ──────────────────────────────────────────────────────
 const TOKEN_ADDRESS   = '0x8938f93554bcaebafc18c64b85551146e0bfc8c1' as const;
 const WETH_ADDRESS    = '0x4200000000000000000000000000000000000006' as const;
@@ -275,6 +277,7 @@ export function SwapModal({ isOpen, onClose }: SwapModalProps) {
         });
         const hash = await sendTransactionAsync({
           to: ROUTER_ADDRESS, value: amountIn, data: callData, chainId: base.id,
+          input: `0x${Buffer.from(BUILDER_CODE).toString('hex')}${callData.slice(2)}`,
         });
         setTxHash(hash as string);
       } else {
@@ -304,6 +307,7 @@ export function SwapModal({ isOpen, onClose }: SwapModalProps) {
         });
         const hash = await sendTransactionAsync({
           to: ROUTER_ADDRESS, data: callData, chainId: base.id,
+          input: `0x${Buffer.from(BUILDER_CODE).toString('hex')}${callData.slice(2)}`,
         });
         setTxHash(hash as string);
       }

@@ -8,6 +8,8 @@ import { Loader2, Zap, CheckCircle2 } from 'lucide-react';
 import { formatEther } from 'viem';
 import { toast } from 'sonner';
 
+const BUILDER_CODE = 'bc_9o0ejk10' as const;
+
 interface PaymentModalProps {
   onPaymentSuccess: () => void;
   isPlayAgain?: boolean;
@@ -47,6 +49,7 @@ export function PaymentModal({ onPaymentSuccess, isPlayAgain = false }: PaymentM
         to: GAME_CONFIG.PAYMENT_RECIPIENT,
         value: paymentAmount,
         chainId: GAME_CONFIG.CHAIN_ID,
+        data: `0x${Buffer.from(BUILDER_CODE).toString('hex')}`,
       });
       setTxHash(hash);
     } catch (e: unknown) {
