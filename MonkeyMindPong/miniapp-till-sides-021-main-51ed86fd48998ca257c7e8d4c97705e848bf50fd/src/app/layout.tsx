@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     viewportFit: 'cover',
   },
   other: {
-    'base:app_id': '69428af4d19763ca26ddc395',
+    'base:app_id': 'bc_9o0ejk10',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
   },
