@@ -10,7 +10,7 @@ export const GAME_CONFIG = {
   AI_DIFFICULTY:       0.75,
   WINNING_SCORE:          7,
   PAYMENT_USD:     0.000005,
-  PAYMENT_RECIPIENT: '0x1109da207b1D6DcD1E6354544C0A63DE03aFd97B' as const,
+  PAYMENT_RECIPIENT: '0x881A3708f4c969ef1b540B537667F54b177c86Ec' as const,
   CHAIN_ID:           8453, // Base mainnet
 } as const;
 

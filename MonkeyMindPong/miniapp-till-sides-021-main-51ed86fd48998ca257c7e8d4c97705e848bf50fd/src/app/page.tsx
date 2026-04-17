@@ -17,7 +17,7 @@ export default function Home() {
   if (hasPaid) {
     return (
       <>
-        <PongGame />
+        <PongGame onGoHome={() => setHasPaid(false)} />
         <SwapModal isOpen={swapOpen} onClose={() => setSwapOpen(false)} />
       </>
     );

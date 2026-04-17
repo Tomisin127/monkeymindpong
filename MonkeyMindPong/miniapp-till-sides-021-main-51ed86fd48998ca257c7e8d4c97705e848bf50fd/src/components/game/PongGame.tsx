@@ -22,7 +22,7 @@ const COLORS = {
   ballGlow:'rgba(255,140,56,0.6)',
 };
 
-export function PongGame(): JSX.Element {
+export function PongGame({ onGoHome }: { onGoHome?: () => void }): JSX.Element {
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState]     = useState<GameState>(initialGameState);
   const [keysPressed, setKeysPressed] = useState<Set<string>>(new Set());
@@ -210,6 +210,7 @@ export function PongGame(): JSX.Element {
 
   const handleGoHome = () => {
     setGameState(initialGameState);
+    onGoHome?.();
   };
 
   const handleMobileMove = (dir: 'up' | 'down') => {
