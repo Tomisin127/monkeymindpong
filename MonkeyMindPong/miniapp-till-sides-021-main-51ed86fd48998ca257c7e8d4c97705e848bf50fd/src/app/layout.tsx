@@ -29,8 +29,6 @@ export const metadata: Metadata = {
     'base:app_id': '69428af4d19763ca26ddc395',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'apple-mobile-web-app-orientation': 'landscape',
-    'screen-orientation': 'landscape',
   },
 };
 
