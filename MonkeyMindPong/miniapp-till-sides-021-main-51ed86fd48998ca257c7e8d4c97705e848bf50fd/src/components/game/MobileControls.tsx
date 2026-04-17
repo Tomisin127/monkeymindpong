@@ -53,7 +53,7 @@ export function MobileControls({ onMove, onStop }: MobileControlsProps): JSX.Ele
         onMouseDown={() => handleTouchStart('up')}
         onMouseUp={handleTouchEnd}
         onMouseLeave={handleTouchEnd}
-        className="bg-black/80 text-white p-4 rounded-lg active:bg-black/60 transition-colors"
+        className="bg-muted/90 text-primary p-4 rounded-xl border border-primary/30 active:bg-primary/20 transition-colors glow-yellow"
         aria-label="Move up"
       >
         <ChevronUp size={32} />
@@ -64,7 +64,7 @@ export function MobileControls({ onMove, onStop }: MobileControlsProps): JSX.Ele
         onMouseDown={() => handleTouchStart('down')}
         onMouseUp={handleTouchEnd}
         onMouseLeave={handleTouchEnd}
-        className="bg-black/80 text-white p-4 rounded-lg active:bg-black/60 transition-colors"
+        className="bg-muted/90 text-primary p-4 rounded-xl border border-primary/30 active:bg-primary/20 transition-colors glow-yellow"
         aria-label="Move down"
       >
         <ChevronDown size={32} />

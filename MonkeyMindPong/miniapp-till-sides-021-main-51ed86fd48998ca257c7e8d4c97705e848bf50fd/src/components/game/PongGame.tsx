@@ -1,336 +1,358 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
 import { MobileControls } from './MobileControls';
 import { TouchControls } from './TouchControls';
 import { PaymentModal } from './PaymentModal';
 import { GAME_CONFIG, initialGameState, type GameState } from '@/lib/game-utils';
 import { useAccount } from 'wagmi';
+import { Zap, Trophy, Skull, RotateCcw, Home } from 'lucide-react';
+
+// ── Colour palette drawn from CSS variables (mirrored as literals for canvas) ──
+const COLORS = {
+  court:   '#0d2a18',
+  courtMid:'#0f3320',
+  paddle:  '#f5c518',   // neon yellow (--primary)
+  aiPaddle:'#38bdf8',   // neon blue  (--accent)
+  ball:    '#ff8c38',   // orange
+  net:     'rgba(245,197,24,0.25)',
+  score:   '#f5c518',
+  glow:    'rgba(245,197,24,0.5)',
+  aiGlow:  'rgba(56,189,248,0.5)',
+  ballGlow:'rgba(255,140,56,0.6)',
+};
 
 export function PongGame(): JSX.Element {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<GameState>(initialGameState);
+  const canvasRef   = useRef<HTMLCanvasElement>(null);
+  const [gameState, setGameState]     = useState<GameState>(initialGameState);
   const [keysPressed, setKeysPressed] = useState<Set<string>>(new Set());
-  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
-  const [isPlayAgain, setIsPlayAgain] = useState<boolean>(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [isPlayAgain, setIsPlayAgain] = useState(false);
   const gameLoopRef = useRef<number | null>(null);
   const { isConnected } = useAccount();
 
-  const resetBall = useCallback((state: GameState): GameState => {
-    return {
-      ...state,
-      ballX: GAME_CONFIG.CANVAS_WIDTH / 2,
-      ballY: GAME_CONFIG.CANVAS_HEIGHT / 2,
-      ballSpeedX: GAME_CONFIG.INITIAL_BALL_SPEED * (Math.random() > 0.5 ? 1 : -1),
-      ballSpeedY: GAME_CONFIG.INITIAL_BALL_SPEED * (Math.random() > 0.5 ? 1 : -1),
-    };
-  }, []);
+  // ── Game logic ─────────────────────────────────────────────────────────────
+  const resetBall = useCallback((state: GameState): GameState => ({
+    ...state,
+    ballX:      GAME_CONFIG.CANVAS_WIDTH  / 2,
+    ballY:      GAME_CONFIG.CANVAS_HEIGHT / 2,
+    ballSpeedX: GAME_CONFIG.INITIAL_BALL_SPEED * (Math.random() > 0.5 ? 1 : -1),
+    ballSpeedY: GAME_CONFIG.INITIAL_BALL_SPEED * (Math.random() > 0.5 ? 1 : -1),
+  }), []);
 
   const updateGame = useCallback((): void => {
-    setGameState((prev: GameState): GameState => {
+    setGameState((prev): GameState => {
       if (!prev.gameStarted || prev.gameOver) return prev;
 
-      let newState = { ...prev };
+      let s = { ...prev };
 
-      if (keysPressed.has('w') || keysPressed.has('ArrowUp')) {
-        newState.playerY = Math.max(0, newState.playerY - GAME_CONFIG.PADDLE_SPEED);
-      }
-      if (keysPressed.has('s') || keysPressed.has('ArrowDown')) {
-        newState.playerY = Math.min(
-          GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.PADDLE_HEIGHT,
-          newState.playerY + GAME_CONFIG.PADDLE_SPEED
-        );
-      }
+      // Player controls
+      if (keysPressed.has('w') || keysPressed.has('ArrowUp'))
+        s.playerY = Math.max(0, s.playerY - GAME_CONFIG.PADDLE_SPEED);
+      if (keysPressed.has('s') || keysPressed.has('ArrowDown'))
+        s.playerY = Math.min(GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.PADDLE_HEIGHT, s.playerY + GAME_CONFIG.PADDLE_SPEED);
 
-      const ballCenterY = newState.ballY + GAME_CONFIG.BALL_SIZE / 2;
-      const aiPaddleCenterY = newState.aiY + GAME_CONFIG.PADDLE_HEIGHT / 2;
+      // AI
+      const ballCY = s.ballY + GAME_CONFIG.BALL_SIZE / 2;
+      const aiCY   = s.aiY   + GAME_CONFIG.PADDLE_HEIGHT / 2;
       const aiSpeed = GAME_CONFIG.PADDLE_SPEED * GAME_CONFIG.AI_DIFFICULTY;
+      if (ballCY < aiCY - 10) s.aiY = Math.max(0, s.aiY - aiSpeed);
+      else if (ballCY > aiCY + 10)
+        s.aiY = Math.min(GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.PADDLE_HEIGHT, s.aiY + aiSpeed);
 
-      if (ballCenterY < aiPaddleCenterY - 10) {
-        newState.aiY = Math.max(0, newState.aiY - aiSpeed);
-      } else if (ballCenterY > aiPaddleCenterY + 10) {
-        newState.aiY = Math.min(
-          GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.PADDLE_HEIGHT,
-          newState.aiY + aiSpeed
-        );
-      }
+      // Ball movement
+      s.ballX += s.ballSpeedX;
+      s.ballY += s.ballSpeedY;
 
-      newState.ballX += newState.ballSpeedX;
-      newState.ballY += newState.ballSpeedY;
+      // Top/bottom bounce
+      if (s.ballY <= 0 || s.ballY >= GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.BALL_SIZE)
+        s.ballSpeedY *= -1;
 
-      if (newState.ballY <= 0 || newState.ballY >= GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.BALL_SIZE) {
-        newState.ballSpeedY *= -1;
-      }
-
+      // Player paddle hit
       if (
-        newState.ballX <= GAME_CONFIG.PADDLE_WIDTH &&
-        newState.ballY + GAME_CONFIG.BALL_SIZE >= newState.playerY &&
-        newState.ballY <= newState.playerY + GAME_CONFIG.PADDLE_HEIGHT
+        s.ballX <= GAME_CONFIG.PADDLE_WIDTH &&
+        s.ballY + GAME_CONFIG.BALL_SIZE >= s.playerY &&
+        s.ballY <= s.playerY + GAME_CONFIG.PADDLE_HEIGHT
       ) {
-        newState.ballSpeedX = Math.abs(newState.ballSpeedX);
-        const speedIncrease = 1.05;
-        newState.ballSpeedX = Math.min(
-          newState.ballSpeedX * speedIncrease,
-          GAME_CONFIG.MAX_BALL_SPEED
-        );
-        newState.ballSpeedY *= speedIncrease;
+        s.ballSpeedX = Math.min(Math.abs(s.ballSpeedX) * 1.05, GAME_CONFIG.MAX_BALL_SPEED);
+        s.ballSpeedY *= 1.05;
       }
 
+      // AI paddle hit
       if (
-        newState.ballX + GAME_CONFIG.BALL_SIZE >= GAME_CONFIG.CANVAS_WIDTH - GAME_CONFIG.PADDLE_WIDTH &&
-        newState.ballY + GAME_CONFIG.BALL_SIZE >= newState.aiY &&
-        newState.ballY <= newState.aiY + GAME_CONFIG.PADDLE_HEIGHT
+        s.ballX + GAME_CONFIG.BALL_SIZE >= GAME_CONFIG.CANVAS_WIDTH - GAME_CONFIG.PADDLE_WIDTH &&
+        s.ballY + GAME_CONFIG.BALL_SIZE >= s.aiY &&
+        s.ballY <= s.aiY + GAME_CONFIG.PADDLE_HEIGHT
       ) {
-        newState.ballSpeedX = -Math.abs(newState.ballSpeedX);
-        const speedIncrease = 1.05;
-        newState.ballSpeedX = Math.max(
-          newState.ballSpeedX * speedIncrease,
-          -GAME_CONFIG.MAX_BALL_SPEED
-        );
-        newState.ballSpeedY *= speedIncrease;
+        s.ballSpeedX = -Math.min(Math.abs(s.ballSpeedX) * 1.05, GAME_CONFIG.MAX_BALL_SPEED);
+        s.ballSpeedY *= 1.05;
       }
 
-      if (newState.ballX < 0) {
-        newState.aiScore += 1;
-        newState = resetBall(newState);
-      }
+      // Scoring
+      if (s.ballX < 0)                         { s.aiScore++;     s = resetBall(s); }
+      if (s.ballX > GAME_CONFIG.CANVAS_WIDTH)  { s.playerScore++; s = resetBall(s); }
 
-      if (newState.ballX > GAME_CONFIG.CANVAS_WIDTH) {
-        newState.playerScore += 1;
-        newState = resetBall(newState);
-      }
+      if (s.playerScore >= GAME_CONFIG.WINNING_SCORE) { s.gameOver = true; s.winner = 'player'; }
+      if (s.aiScore     >= GAME_CONFIG.WINNING_SCORE) { s.gameOver = true; s.winner = 'ai'; }
 
-      if (newState.playerScore >= GAME_CONFIG.WINNING_SCORE) {
-        newState.gameOver = true;
-        newState.winner = 'player';
-      } else if (newState.aiScore >= GAME_CONFIG.WINNING_SCORE) {
-        newState.gameOver = true;
-        newState.winner = 'ai';
-      }
-
-      return newState;
+      return s;
     });
   }, [keysPressed, resetBall]);
 
+  // ── Game loop ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (gameState.gameStarted && !gameState.gameOver) {
-      gameLoopRef.current = window.requestAnimationFrame(function loop(): void {
+      const loop = (): void => {
         updateGame();
         gameLoopRef.current = window.requestAnimationFrame(loop);
-      });
+      };
+      gameLoopRef.current = window.requestAnimationFrame(loop);
     }
-
-    return () => {
-      if (gameLoopRef.current) {
-        window.cancelAnimationFrame(gameLoopRef.current);
-      }
-    };
+    return () => { if (gameLoopRef.current) window.cancelAnimationFrame(gameLoopRef.current); };
   }, [gameState.gameStarted, gameState.gameOver, updateGame]);
 
+  // ── Keyboard ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      setKeysPressed((prev: Set<string>): Set<string> => new Set(prev).add(e.key));
-    };
-
-    const handleKeyUp = (e: KeyboardEvent): void => {
-      setKeysPressed((prev: Set<string>): Set<string> => {
-        const newSet = new Set(prev);
-        newSet.delete(e.key);
-        return newSet;
-      });
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
+    const dn = (e: KeyboardEvent) => setKeysPressed((p) => new Set(p).add(e.key));
+    const up = (e: KeyboardEvent) => setKeysPressed((p) => { const n = new Set(p); n.delete(e.key); return n; });
+    window.addEventListener('keydown', dn);
+    window.addEventListener('keyup',   up);
+    return () => { window.removeEventListener('keydown', dn); window.removeEventListener('keyup', up); };
   }, []);
 
+  // ── Canvas render ──────────────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = '#10b981';
-    ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
+    const W = GAME_CONFIG.CANVAS_WIDTH;
+    const H = GAME_CONFIG.CANVAS_HEIGHT;
 
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, gameState.playerY, GAME_CONFIG.PADDLE_WIDTH, GAME_CONFIG.PADDLE_HEIGHT);
-    ctx.fillRect(
-      GAME_CONFIG.CANVAS_WIDTH - GAME_CONFIG.PADDLE_WIDTH,
-      gameState.aiY,
-      GAME_CONFIG.PADDLE_WIDTH,
-      GAME_CONFIG.PADDLE_HEIGHT
-    );
+    // Court
+    ctx.fillStyle = COLORS.court;
+    ctx.fillRect(0, 0, W, H);
 
-    ctx.fillStyle = '#fbbf24';
+    // Subtle mid-court stripe
+    ctx.fillStyle = COLORS.courtMid;
+    ctx.fillRect(W / 2 - 2, 0, 4, H);
+
+    // Dotted net
+    ctx.strokeStyle = COLORS.net;
+    ctx.setLineDash([14, 10]);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(W / 2, 0);
+    ctx.lineTo(W / 2, H);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Score numbers
+    ctx.fillStyle = COLORS.score;
+    ctx.font = 'bold 56px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = COLORS.glow;
+    ctx.shadowBlur = 18;
+    ctx.fillText(`${gameState.playerScore}`, W / 4,        70);
+    ctx.fillText(`${gameState.aiScore}`,     (W * 3) / 4,  70);
+    ctx.shadowBlur = 0;
+
+    // Player paddle (yellow glow)
+    ctx.shadowColor = COLORS.glow;
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = COLORS.paddle;
+    ctx.beginPath();
+    ctx.roundRect(2, gameState.playerY, GAME_CONFIG.PADDLE_WIDTH, GAME_CONFIG.PADDLE_HEIGHT, 4);
+    ctx.fill();
+
+    // AI paddle (blue glow)
+    ctx.shadowColor = COLORS.aiGlow;
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = COLORS.aiPaddle;
+    ctx.beginPath();
+    ctx.roundRect(W - GAME_CONFIG.PADDLE_WIDTH - 2, gameState.aiY, GAME_CONFIG.PADDLE_WIDTH, GAME_CONFIG.PADDLE_HEIGHT, 4);
+    ctx.fill();
+
+    // Ball (orange glow)
+    ctx.shadowColor = COLORS.ballGlow;
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = COLORS.ball;
     ctx.beginPath();
     ctx.arc(
       gameState.ballX + GAME_CONFIG.BALL_SIZE / 2,
       gameState.ballY + GAME_CONFIG.BALL_SIZE / 2,
       GAME_CONFIG.BALL_SIZE / 2,
-      0,
-      Math.PI * 2
+      0, Math.PI * 2
     );
     ctx.fill();
+    ctx.shadowBlur = 0;
 
-    ctx.strokeStyle = '#ffffff';
-    ctx.setLineDash([10, 5]);
-    ctx.beginPath();
-    ctx.moveTo(GAME_CONFIG.CANVAS_WIDTH / 2, 0);
-    ctx.lineTo(GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT);
-    ctx.stroke();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 48px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(
-      `${gameState.playerScore}`,
-      GAME_CONFIG.CANVAS_WIDTH / 4,
-      60
-    );
-    ctx.fillText(
-      `${gameState.aiScore}`,
-      (GAME_CONFIG.CANVAS_WIDTH * 3) / 4,
-      60
-    );
+    // Scanlines overlay
+    for (let y = 0; y < H; y += 4) {
+      ctx.fillStyle = 'rgba(0,0,0,0.06)';
+      ctx.fillRect(0, y, W, 1);
+    }
   }, [gameState]);
 
-  const handlePaymentSuccess = (): void => {
-    setShowPaymentModal(false);
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handlePaymentSuccess = () => {
+    setShowPayment(false);
     setGameState({ ...initialGameState, gameStarted: true });
     setIsPlayAgain(false);
   };
 
-  const handlePlayAgain = (): void => {
-    if (!isConnected) {
-      setGameState({ ...initialGameState, gameStarted: true });
-      return;
-    }
+  const handlePlayAgain = () => {
+    if (!isConnected) { setGameState({ ...initialGameState, gameStarted: true }); return; }
     setIsPlayAgain(true);
-    setShowPaymentModal(true);
+    setShowPayment(true);
   };
 
-  const handleInitialPlay = (): void => {
-    setIsPlayAgain(false);
-    setShowPaymentModal(true);
+  const handleGoHome = () => {
+    setGameState(initialGameState);
   };
 
-  const handleMobileMove = (direction: 'up' | 'down'): void => {
-    setGameState((prev: GameState): GameState => {
+  const handleMobileMove = (dir: 'up' | 'down') => {
+    setGameState((prev) => {
       if (!prev.gameStarted || prev.gameOver) return prev;
-
-      const newY = direction === 'up' 
+      const newY = dir === 'up'
         ? Math.max(0, prev.playerY - GAME_CONFIG.PADDLE_SPEED)
-        : Math.min(
-            GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.PADDLE_HEIGHT,
-            prev.playerY + GAME_CONFIG.PADDLE_SPEED
-          );
-
+        : Math.min(GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.PADDLE_HEIGHT, prev.playerY + GAME_CONFIG.PADDLE_SPEED);
       return { ...prev, playerY: newY };
     });
   };
 
-  const handleTouchMove = (speed: number): void => {
-    setGameState((prev: GameState): GameState => {
+  const handleTouchMove = (speed: number) => {
+    setGameState((prev) => {
       if (!prev.gameStarted || prev.gameOver) return prev;
-
-      const newY = Math.max(
-        0,
-        Math.min(
-          GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.PADDLE_HEIGHT,
-          prev.playerY - speed
-        )
-      );
-
+      const newY = Math.max(0, Math.min(GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.PADDLE_HEIGHT, prev.playerY - speed));
       return { ...prev, playerY: newY };
     });
   };
 
-  const handleMobileStop = (): void => {
-    // No action needed for button stop
-  };
-
-  if (showPaymentModal) {
+  if (showPayment) {
     return <PaymentModal onPaymentSuccess={handlePaymentSuccess} isPlayAgain={isPlayAgain} />;
   }
 
+  const playerWon = gameState.winner === 'player';
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-emerald-500 to-emerald-700 p-4">
-      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-2xl">
-        <div className="mb-4 text-center">
-          <h1 className="text-4xl font-bold text-white mb-2 flex items-center justify-center gap-2">
-            <span>🐵</span>
-            <span>Monkey MindPong</span>
-            <span>🏓</span>
-          </h1>
-          <p className="text-white/90">First to {GAME_CONFIG.WINNING_SCORE} wins!</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-3 lg:p-6">
+
+      {/* ── Top bar ── */}
+      <div className="w-full max-w-[1200px] flex items-center justify-between mb-4 px-2">
+        <div className="flex items-center gap-2">
+          <span className="font-pixel text-[10px] text-primary text-glow-yellow tracking-widest">MONKEY MINDPONG</span>
         </div>
-
-        <div className="relative">
-          <canvas
-            ref={canvasRef}
-            width={GAME_CONFIG.CANVAS_WIDTH}
-            height={GAME_CONFIG.CANVAS_HEIGHT}
-            className="border-4 border-white rounded-lg shadow-xl max-w-full"
-          />
-
-          {!gameState.gameStarted && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-              <Button onClick={handleInitialPlay} size="lg" className="text-xl px-8 py-6">
-                🍌 Pay & Play 🍌
-              </Button>
-            </div>
-          )}
-
-          {gameState.gameOver && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 rounded-lg">
-              <div className="text-center space-y-4">
-                <div className="text-6xl mb-4">
-                  {gameState.winner === 'player' ? '🎉' : '🐵'}
-                </div>
-                <h2 className="text-4xl font-bold text-white">
-                  {gameState.winner === 'player' ? 'You Win!' : 'AI Wins!'}
-                </h2>
-                <p className="text-xl text-white/90">
-                  Final Score: {gameState.playerScore} - {gameState.aiScore}
-                </p>
-                {isConnected ? (
-                  <Button onClick={handlePlayAgain} size="lg" className="text-xl px-8 py-6">
-                    🔄 Pay & Play Again
-                  </Button>
-                ) : (
-                  <Button onClick={handlePlayAgain} size="lg" className="text-xl px-8 py-6">
-                    🔄 Play Again (Free)
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-4 bg-white/10 rounded-lg p-4 text-white text-center">
-          <p className="text-sm mb-2">
-            <strong>Controls:</strong>
-          </p>
-          <p className="text-xs">
-            Desktop: W/S or Arrow Keys • Mobile: Swipe left side or use buttons
-          </p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground font-mono">First to {GAME_CONFIG.WINNING_SCORE}</span>
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-accent/20 text-accent border border-accent/30">BASE</span>
         </div>
       </div>
 
-      <TouchControls 
-        onMove={handleTouchMove} 
+      {/* ── Canvas wrapper ── */}
+      <div className="relative w-full max-w-[1200px]">
+        <canvas
+          ref={canvasRef}
+          width={GAME_CONFIG.CANVAS_WIDTH}
+          height={GAME_CONFIG.CANVAS_HEIGHT}
+          className="w-full h-auto rounded-xl pixel-border scanlines"
+          style={{ display: 'block' }}
+        />
+
+        {/* ── Pre-game overlay ── */}
+        {!gameState.gameStarted && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/75 backdrop-blur-sm rounded-xl">
+            <p className="font-pixel text-primary text-glow-yellow text-[10px] md:text-xs mb-6 tracking-widest animate-pulse">
+              INSERT COIN
+            </p>
+            <button
+              onClick={() => { setIsPlayAgain(false); setShowPayment(true); }}
+              className="px-8 py-4 rounded-xl bg-primary text-primary-foreground font-pixel text-xs tracking-wider glow-yellow hover:scale-105 active:scale-95 transition-transform"
+            >
+              PAY &amp; PLAY
+            </button>
+            <p className="mt-4 text-xs text-muted-foreground">
+              W / S &nbsp;|&nbsp; Arrow Keys &nbsp;|&nbsp; Swipe
+            </p>
+          </div>
+        )}
+
+        {/* ── Game-over overlay ── */}
+        {gameState.gameOver && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md rounded-xl">
+            <div className="text-center space-y-6 px-6">
+              {/* Result icon */}
+              <div className="flex justify-center">
+                {playerWon
+                  ? <Trophy size={64} className="text-primary text-glow-yellow" />
+                  : <Skull   size={64} className="text-destructive" />
+                }
+              </div>
+
+              {/* Title */}
+              <h2 className="font-pixel text-sm md:text-lg tracking-widest" style={{
+                color: playerWon ? 'hsl(48 100% 55%)' : 'hsl(0 75% 55%)',
+                textShadow: playerWon
+                  ? '0 0 20px hsl(48 100% 55% / 0.8)'
+                  : '0 0 20px hsl(0 75% 55% / 0.8)',
+              }}>
+                {playerWon ? 'YOU WIN!' : 'GAME OVER'}
+              </h2>
+
+              {/* Score */}
+              <p className="font-pixel text-[10px] text-muted-foreground">
+                {gameState.playerScore} &nbsp;—&nbsp; {gameState.aiScore}
+              </p>
+
+              {/* Buttons row */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={handlePlayAgain}
+                  className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-pixel text-[10px] tracking-widest transition-all hover:scale-105 active:scale-95"
+                  style={{
+                    background: playerWon ? 'hsl(48 100% 55%)' : 'hsl(213 100% 55%)',
+                    color: 'hsl(220 20% 7%)',
+                    boxShadow: playerWon
+                      ? '0 0 16px hsl(48 100% 55% / 0.6)'
+                      : '0 0 16px hsl(213 100% 55% / 0.6)',
+                  }}
+                >
+                  <RotateCcw size={14} />
+                  {isConnected ? 'PAY & RETRY' : 'PLAY AGAIN'}
+                </button>
+
+                <button
+                  onClick={handleGoHome}
+                  className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-pixel text-[10px] tracking-widest bg-muted text-foreground hover:bg-muted/70 transition-all hover:scale-105 active:scale-95 border border-border"
+                >
+                  <Home size={14} />
+                  HOME
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Controls hint ── */}
+      <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <Zap size={12} className="text-primary" />
+          Desktop: W / S or Arrow Keys
+        </span>
+        <span className="hidden md:flex items-center gap-1">
+          <Zap size={12} className="text-primary" />
+          Mobile: swipe or tap buttons
+        </span>
+      </div>
+
+      <TouchControls
+        onMove={handleTouchMove}
         gameStarted={gameState.gameStarted}
         gameOver={gameState.gameOver}
       />
-      <MobileControls onMove={handleMobileMove} onStop={handleMobileStop} />
+      <MobileControls onMove={handleMobileMove} onStop={() => {}} />
     </div>
   );
 }
