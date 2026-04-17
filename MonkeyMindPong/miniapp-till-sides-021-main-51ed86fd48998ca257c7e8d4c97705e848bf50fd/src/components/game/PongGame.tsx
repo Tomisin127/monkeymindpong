@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { MobileControls } from './MobileControls';
 import { TouchControls } from './TouchControls';
 import { PaymentModal } from './PaymentModal';
 import { GAME_CONFIG, initialGameState, type GameState } from '@/lib/game-utils';
 import { useAccount } from 'wagmi';
-import { Zap, Trophy, Skull, RotateCcw, Home } from 'lucide-react';
+import { Trophy, Skull, RotateCcw, Home } from 'lucide-react';
 
 // ── Colour palette drawn from CSS variables (mirrored as literals for canvas) ──
 const COLORS = {
@@ -213,16 +212,6 @@ export function PongGame({ onGoHome }: { onGoHome?: () => void }): JSX.Element {
     onGoHome?.();
   };
 
-  const handleMobileMove = (dir: 'up' | 'down') => {
-    setGameState((prev) => {
-      if (!prev.gameStarted || prev.gameOver) return prev;
-      const newY = dir === 'up'
-        ? Math.max(0, prev.playerY - GAME_CONFIG.PADDLE_SPEED)
-        : Math.min(GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.PADDLE_HEIGHT, prev.playerY + GAME_CONFIG.PADDLE_SPEED);
-      return { ...prev, playerY: newY };
-    });
-  };
-
   const handleTouchMove = (speed: number) => {
     setGameState((prev) => {
       if (!prev.gameStarted || prev.gameOver) return prev;
@@ -242,13 +231,8 @@ export function PongGame({ onGoHome }: { onGoHome?: () => void }): JSX.Element {
 
       {/* ── Top bar ── */}
       <div className="w-full max-w-[1200px] flex items-center justify-between mb-4 px-2">
-        <div className="flex items-center gap-2">
-          <span className="font-pixel text-[10px] text-primary text-glow-yellow tracking-widest">MONKEY MINDPONG</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground font-mono">First to {GAME_CONFIG.WINNING_SCORE}</span>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-accent/20 text-accent border border-accent/30">BASE</span>
-        </div>
+        <span className="font-pixel text-[10px] text-primary text-glow-yellow tracking-widest">MONKEY MINDPONG</span>
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-accent/20 text-accent border border-accent/30">BASE</span>
       </div>
 
       {/* ── Canvas wrapper ── */}
@@ -264,18 +248,12 @@ export function PongGame({ onGoHome }: { onGoHome?: () => void }): JSX.Element {
         {/* ── Pre-game overlay ── */}
         {!gameState.gameStarted && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/75 backdrop-blur-sm rounded-xl">
-            <p className="font-pixel text-primary text-glow-yellow text-[10px] md:text-xs mb-6 tracking-widest animate-pulse">
-              INSERT COIN
-            </p>
             <button
               onClick={() => { setIsPlayAgain(false); setShowPayment(true); }}
               className="px-8 py-4 rounded-xl bg-primary text-primary-foreground font-pixel text-xs tracking-wider glow-yellow hover:scale-105 active:scale-95 transition-transform"
             >
               PAY &amp; PLAY
             </button>
-            <p className="mt-4 text-xs text-muted-foreground">
-              W / S &nbsp;|&nbsp; Arrow Keys &nbsp;|&nbsp; Swipe
-            </p>
           </div>
         )}
 
@@ -336,24 +314,11 @@ export function PongGame({ onGoHome }: { onGoHome?: () => void }): JSX.Element {
         )}
       </div>
 
-      {/* ── Controls hint ── */}
-      <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Zap size={12} className="text-primary" />
-          Desktop: W / S or Arrow Keys
-        </span>
-        <span className="hidden md:flex items-center gap-1">
-          <Zap size={12} className="text-primary" />
-          Mobile: swipe or tap buttons
-        </span>
-      </div>
-
       <TouchControls
         onMove={handleTouchMove}
         gameStarted={gameState.gameStarted}
         gameOver={gameState.gameOver}
       />
-      <MobileControls onMove={handleMobileMove} onStop={() => {}} />
     </div>
   );
 }
