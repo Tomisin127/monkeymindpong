@@ -5,6 +5,7 @@ import { PaymentModal } from '@/components/game/PaymentModal';
 import { PongGame } from '@/components/game/PongGame';
 import { SwapModal } from '@/components/game/SwapModal';
 import { WalletConnect } from '@/components/WalletConnect';
+import { FullscreenButton } from '@/components/FullscreenButton';
 import { TrendingUp, Gamepad2, Zap, ChevronRight, ExternalLink } from 'lucide-react';
 
 const TOKEN_ADDRESS = '0x8938f93554bcaebafc18c64b85551146e0bfc8c1';
@@ -27,9 +28,12 @@ export default function Home() {
     <>
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
       <header className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 md:px-8 h-14 border-b border-border bg-background/80 backdrop-blur-md">
-        <span className="font-pixel text-[9px] md:text-[11px] text-primary text-glow-yellow tracking-widest">
-          MONKEY MINDPONG
-        </span>
+        <div className="flex items-center gap-3">
+          <FullscreenButton />
+          <span className="font-pixel text-[9px] md:text-[11px] text-primary text-glow-yellow tracking-widest">
+            MONKEY MINDPONG
+          </span>
+        </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSwapOpen(true)}

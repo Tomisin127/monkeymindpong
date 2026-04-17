@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { TouchControls } from './TouchControls';
 import { PaymentModal } from './PaymentModal';
+import { FullscreenButton } from '@/components/FullscreenButton';
 import { GAME_CONFIG, initialGameState, type GameState } from '@/lib/game-utils';
 import { useAccount } from 'wagmi';
 import { Trophy, Skull, RotateCcw, Home } from 'lucide-react';
@@ -227,23 +228,34 @@ export function PongGame({ onGoHome }: { onGoHome?: () => void }): JSX.Element {
   const playerWon = gameState.winner === 'player';
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-3 lg:p-6">
+    <div className="flex flex-col h-[100svh] w-full bg-background overflow-hidden">
 
       {/* ── Top bar ── */}
-      <div className="w-full max-w-[1200px] flex items-center justify-between mb-4 px-2">
-        <span className="font-pixel text-[10px] text-primary text-glow-yellow tracking-widest">MONKEY MINDPONG</span>
+      <div className="shrink-0 w-full flex items-center justify-between px-3 py-2 md:px-4 md:py-3">
+        <div className="flex items-center gap-3">
+          <FullscreenButton />
+          <span className="font-pixel text-[9px] md:text-[10px] text-primary text-glow-yellow tracking-widest">MONKEY MINDPONG</span>
+        </div>
         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-accent/20 text-accent border border-accent/30">BASE</span>
       </div>
 
-      {/* ── Canvas wrapper ── */}
-      <div className="relative w-full max-w-[1200px]">
-        <canvas
-          ref={canvasRef}
-          width={GAME_CONFIG.CANVAS_WIDTH}
-          height={GAME_CONFIG.CANVAS_HEIGHT}
-          className="w-full h-auto rounded-xl pixel-border scanlines"
-          style={{ display: 'block' }}
-        />
+      {/* ── Canvas area (fills remaining viewport) ── */}
+      <div className="flex-1 min-h-0 w-full flex items-center justify-center px-2 pb-2 md:px-4 md:pb-4">
+        <div
+          className="relative"
+          style={{
+            aspectRatio: `${GAME_CONFIG.CANVAS_WIDTH} / ${GAME_CONFIG.CANVAS_HEIGHT}`,
+            height: '100%',
+            maxWidth: '100%',
+            maxHeight: '100%',
+          }}
+        >
+          <canvas
+            ref={canvasRef}
+            width={GAME_CONFIG.CANVAS_WIDTH}
+            height={GAME_CONFIG.CANVAS_HEIGHT}
+            className="w-full h-full rounded-xl pixel-border scanlines block"
+          />
 
         {/* ── Pre-game overlay ── */}
         {!gameState.gameStarted && (
@@ -312,13 +324,14 @@ export function PongGame({ onGoHome }: { onGoHome?: () => void }): JSX.Element {
             </div>
           </div>
         )}
-      </div>
 
-      <TouchControls
-        onMove={handleTouchMove}
-        gameStarted={gameState.gameStarted}
-        gameOver={gameState.gameOver}
-      />
+          <TouchControls
+            onMove={handleTouchMove}
+            gameStarted={gameState.gameStarted}
+            gameOver={gameState.gameOver}
+          />
+        </div>
+      </div>
     </div>
   );
 }
