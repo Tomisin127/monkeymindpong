@@ -18,8 +18,17 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Monkey MindPong',
   description: 'Play Pong against an AI monkey on Base chain. Swap $MONK tokens and earn on-chain glory.',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    userScalable: false,
+    viewportFit: 'cover',
+  },
   other: {
     'base:app_id': '69428af4d19763ca26ddc395',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'apple-mobile-web-app-orientation': 'landscape',
   },
 };
 
