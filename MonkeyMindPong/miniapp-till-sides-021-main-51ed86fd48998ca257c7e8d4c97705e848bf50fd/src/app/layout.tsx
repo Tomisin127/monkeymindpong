@@ -3,6 +3,7 @@ import { Press_Start_2P, Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
+import { FullscreenButton } from '@/components/FullscreenButton';
 
 const pressStart2P = Press_Start_2P({
   weight: '400',
@@ -43,6 +44,7 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <FullscreenButton className="fixed top-3 left-3 md:top-4 md:left-4 z-[100] shadow-lg backdrop-blur-md bg-background/70" />
         <Toaster />
       </body>
     </html>

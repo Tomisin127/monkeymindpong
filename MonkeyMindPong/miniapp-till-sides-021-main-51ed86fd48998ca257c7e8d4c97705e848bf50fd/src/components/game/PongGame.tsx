@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { TouchControls } from './TouchControls';
 import { PaymentModal } from './PaymentModal';
-import { FullscreenButton } from '@/components/FullscreenButton';
 import { GAME_CONFIG, initialGameState, type GameState } from '@/lib/game-utils';
 import { useAccount } from 'wagmi';
 import { Trophy, Skull, RotateCcw, Home } from 'lucide-react';
@@ -232,8 +231,7 @@ export function PongGame({ onGoHome }: { onGoHome?: () => void }): JSX.Element {
 
       {/* ── Top bar ── */}
       <div className="shrink-0 w-full flex items-center justify-between px-3 py-2 md:px-4 md:py-3">
-        <div className="flex items-center gap-3">
-          <FullscreenButton />
+        <div className="flex items-center gap-3 pl-12 md:pl-14">
           <span className="font-pixel text-[9px] md:text-[10px] text-primary text-glow-yellow tracking-widest">MONKEY MINDPONG</span>
         </div>
         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-accent/20 text-accent border border-accent/30">BASE</span>
